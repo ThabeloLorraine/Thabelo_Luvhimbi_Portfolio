@@ -622,17 +622,19 @@
         cursor: pointer;
         padding: 8px;
         z-index: 100;
-        display: none; /* Hidden by default */
+        display: none; /* Hidden by default even on mobile */
     }
 
+    /* Only show close button when mobile menu is open */
     .nav-links.open .close-menu {
-        display: block; /* Show when menu is open */
+        display: block !important;
     }
 
-    .nav-links.open {
-        display: flex;
+    .close-menu:hover {
+        color: var(--primary);
+        transform: scale(1.1);
     }
-        }
+}
 
         /* move button inside about section slightly down for spacing */
         .about-content .btn {
@@ -702,3 +704,46 @@
             }
             .project-card { opacity: 1; }
         }
+
+        /* Hide close button by default for all screen sizes */
+.close-menu {
+    display: none !important;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    /* ...existing mobile nav styles... */
+
+    .close-menu {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: transparent;
+        border: none;
+        font-size: 24px;
+        color: var(--dark);
+        cursor: pointer;
+        padding: 8px;
+        z-index: 100;
+        display: none; /* Hidden by default even on mobile */
+    }
+
+    /* Only show close button when mobile menu is open */
+    .nav-links.open .close-menu {
+        display: block !important;
+    }
+
+    .close-menu:hover {
+        color: var(--primary);
+        transform: scale(1.1);
+    }
+}
+
+/* Ensure close button stays hidden above mobile breakpoint */
+@media (min-width: 769px) {
+    .close-menu,
+    .nav-links .close-menu,
+    .nav-links.open .close-menu {
+        display: none !important;
+    }
+}
