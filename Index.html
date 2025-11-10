@@ -363,157 +363,89 @@
         });
 
         // Web3Forms AJAX submission
-(function () {
-    const form = document.getElementById('contactForm');
-    const submitBtn = document.getElementById('contactSubmit');
-    let status = document.getElementById('contactStatus');
-
-    if (!form) return;
-
-    // Create pop-up element
-    function createThankYouPopup() {
-        const popup = document.createElement('div');
-        popup.id = 'thankYouPopup';
-        popup.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.7);
-            background: white;
-            padding: 30px 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            z-index: 10000;
-            text-align: center;
-            opacity: 0;
-            transition: all 0.3s ease;
-            max-width: 400px;
-        `;
-        
-        popup.innerHTML = `
-            <div style="font-size: 48px; color: #4CAF50; margin-bottom: 15px;">✓</div>
-            <h3 style="margin: 0 0 10px 0; color: #333; font-size: 24px;">Thank You!</h3>
-            <p style="margin: 0 0 20px 0; color: #666; font-size: 16px;">Your message has been sent successfully.</p>
-            <button id="closePopup" style="
-                background: #4CAF50;
-                color: white;
-                border: none;
-                padding: 10px 30px;
-                border-radius: 6px;
-                cursor: pointer;
-                font-size: 16px;
-                transition: background 0.3s ease;
-            ">OK</button>
-        `;
-        
-        return popup;
-    }
-
-    // Create overlay
-    function createOverlay() {
-        const overlay = document.createElement('div');
-        overlay.id = 'popupOverlay';
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 9999;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        `;
-        return overlay;
-    }
-
-    // Show thank you pop-up
-    function showThankYouPopup() {
-        const overlay = createOverlay();
-        const popup = createThankYouPopup();
-        
-        document.body.appendChild(overlay);
-        document.body.appendChild(popup);
-        
-        // Animate in
-        setTimeout(() => {
-            overlay.style.opacity = '1';
-            popup.style.opacity = '1';
-            popup.style.transform = 'translate(-50%, -50%) scale(1)';
-        }, 10);
-        
-        // Close functionality
-        function closePopup() {
-            popup.style.opacity = '0';
-            popup.style.transform = 'translate(-50%, -50%) scale(0.7)';
-            overlay.style.opacity = '0';
-            
-            setTimeout(() => {
-                popup.remove();
-                overlay.remove();
-            }, 300);
+// Web3Forms AJAX submission handler
+    // Show contact success message if redirected
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("sent") === "true") {
+          const el = document.getElementById("contactSuccess");
+          if (el) {
+            el.classList.remove("hidden");
+            setTimeout(() => el.classList.add("hidden"), 8000);
+          }
         }
-        
-        document.getElementById('closePopup').addEventListener('click', closePopup);
-        overlay.addEventListener('click', closePopup);
-    }
+      })();
 
-    function showStatus(msg, type = 'info') {
-        status.textContent = msg;
-        status.className = `status-${type}`;
-        status.style.display = 'block';
-    }
+      // Web3Forms AJAX submission handler
+      (function () {
+        const form = document.getElementById("contactForm");
+        if (!form) return;
 
-    form.addEventListener('submit', async (e) => {
-        e.preventDefault();
+        const submitBtn = document.getElementById("contactSubmit");
+        const successEl = document.getElementById("contactSuccess");
+        const errorEl = document.getElementById("contactError");
 
-        // Basic client-side validation
-        const name = form.querySelector('[name="name"]').value.trim();
-        const email = form.querySelector('[name="email"]').value.trim();
-        const message = form.querySelector('[name="message"]').value.trim();
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          if (!submitBtn) return;
 
-        if (!name || !email || !message) {
-            showStatus('Please fill in all required fields.', 'error');
-            return;
-        }
+          // Clear previous errors
+          if (errorEl) {
+            errorEl.textContent = "";
+            errorEl.classList.add("hidden");
+          }
 
-        submitBtn.disabled = true;
-        const originalText = submitBtn.textContent;
-        submitBtn.textContent = 'Sending...';
-        showStatus('Sending message...', 'info');
+          submitBtn.disabled = true;
+          const originalText = submitBtn.textContent;
+          submitBtn.textContent = "Sending...";
 
-        try {
+          try {
             const formData = new FormData(form);
+            // Send to Web3Forms
             const res = await fetch(form.action, {
-                method: form.method || 'POST',
-                body: formData,
-                headers: { accept: 'application/json' },
+              method: form.method || "POST",
+              headers: {
+                accept: "application/json",
+              },
+              body: formData,
             });
 
             if (!res.ok) {
-                const errBody = await res.json().catch(() => ({}));
-                throw new Error(errBody?.message || 'Submission failed');
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err?.message || "Submission failed");
             }
 
-            // Clear the form
+            const data = await res.json().catch(() => ({}));
+
+            // On success show banner and optionally redirect if server returns redirect
+            if (successEl) {
+              successEl.classList.remove("hidden");
+            }
+
+            // If web3forms returned a redirect URL, follow it
+            if (data?.redirect) {
+              window.location.href = data.redirect;
+              return;
+            }
+
+            // Reset form after short delay so user sees success
             form.reset();
-            
-            // Hide status message
-            status.style.display = 'none';
-            
-            // Show thank you pop-up
-            showThankYouPopup();
-            
-        } catch (err) {
-            console.error('Form submit error:', err);
-            showStatus('Unable to send message. Please try again later.', 'error');
-        } finally {
+            setTimeout(() => {
+              if (successEl) successEl.classList.add("hidden");
+            }, 8000);
+          } catch (err) {
+            console.error(err);
+            if (errorEl) {
+              errorEl.textContent = err.message || "Unable to send message.";
+              errorEl.classList.remove("hidden");
+            }
+          } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = originalText;
-        }
-    });
-})();
-
+          }
+        });
+      })();
+        
 /*(function () {
     const form = document.getElementById('contactForm');
     const submitBtn = document.getElementById('contactSubmit');
